@@ -1,18 +1,16 @@
-const { collection, query, where, getDocs } = require("firebase/firestore");
-const { db } = require("../config.js");
+const ProductsModel = require("../models/Products.js");
 
 const Products = async (req, res) => {
   const body = req.body;
-  const q = query(collection(db, "products"), where("type", "==", body.type));
 
-  const querySnapshot = await getDocs(q);
-
-  const dataForm = [];
-
-  querySnapshot.forEach((doc) => {
-    dataForm.push(doc.data());
-  });
-  res.send({ products: dataForm });
+  try {
+    const products = await ProductsModel.find({
+      type: body.type,
+    });
+    res.send({ products: products });
+  } catch (err) {
+    res.send({ error: err.message });
+  }
 };
 
 module.exports = Products;

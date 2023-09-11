@@ -6,12 +6,16 @@ const dotenv = require("dotenv");
 
 const AuthRouter = require("./routers/Auth");
 const ProductsRouter = require("./routers/Products");
-const OrderRouter = require("./routers/Products");
+const OrderRouter = require("./routers/Orders");
+const databaseConnection = require("./config/connection");
 
 const app = express();
 
 // dotenv config
 dotenv.config();
+
+// database connection
+databaseConnection();
 
 // using different libraries;
 app.use(cors());

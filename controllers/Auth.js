@@ -1,130 +1,80 @@
-const {
-  getAuth,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  db,
-} = require("../config.js");
-const {
-  addDoc,
-  collection,
-  query,
-  where,
-  getDocs,
-  doc,
-  updateDoc,
-} = require("firebase/firestore");
+const users = require("../models/Auth.js");
 
-const UserSignIn = (req, res) => {
+const UserSignIn = async (req, res) => {
   const data = req.body;
 
-  const auth = getAuth();
-  signInWithEmailAndPassword(auth, data.email, data.password)
-    .then((userCredential) => {
-      // Signed in
-      const user = userCredential.user;
-
-      res.send({ results: user["email"] });
-    })
-    .catch((error) => {
-      res.send({
-        results: {
-          error: "Error While Sign In",
-        },
-      });
+  try {
+    const UserData = await users.findOne({
+      email: data.email,
+      password: data.password,
     });
+    res.send({ results: UserData?.email });
+  } catch (err) {
+    res.send({ error: err.message });
+  }
 };
 
-const UserSignUp = (req, res) => {
-  const data = req.body;
-  const auth = getAuth();
-  createUserWithEmailAndPassword(auth, data.email, data.password)
-    .then(async (userCredential) => {
-      // Signed in
-      const user = userCredential.user;
+const UserSignUp = async (req, res) => {
+  try {
+    const insertData = await users(req.body);
 
-      const docRef = await addDoc(collection(db, "users"), {
-        name: data.name,
-        email: data.email,
-        password: data.password,
-      });
+    const saveData = await insertData.save();
 
-      res.send({ results: user["email"] });
-    })
-    .catch((error) => {
-      console.log(error);
-      res.send({
-        results: {
-          error: "Error While Sign Up",
-        },
-      });
-    });
+    res.send({ results: saveData?.email });
+  } catch (err) {
+    console.log(err.message);
+    res.send({ error: err.message });
+  }
 };
 
 const UserInformation = async (req, res) => {
-  const body = req.body;
-  const q = query(collection(db, "users"), where("email", "==", body.email));
+  const data = req.body;
 
-  const querySnapshot = await getDocs(q);
+  try {
+    const UserData = await users.find({
+      email: data.email,
+    });
 
-  const dataForm = [];
-
-  querySnapshot.forEach((doc) => {
-    dataForm.push(doc.data());
-  });
-
-  if (dataForm.length > 0) {
-    res.send({ user: dataForm[0] });
-  } else {
-    res.send({ user: "Not Available" });
+    if (UserData.length > 0) {
+      res.send({
+        results: UserData[0],
+      });
+    } else {
+      res.send({
+        results: "No User Found",
+      });
+    }
+  } catch (err) {
+    res.send({ error: err.message });
   }
 };
 
 const UpdateProfile = async (req, res) => {
   const data = req.body;
 
-  const auth = getAuth();
-  signInWithEmailAndPassword(auth, data.email, data.password)
-    .then(async (userCredential) => {
-      // Signed in
+  const filter = {
+    email: data.email,
+    password: data.password,
+  };
 
-      const q = query(
-        collection(db, "users"),
-        where("email", "==", data.email)
-      );
+  const update = {
+    email: data.newEmail,
+    password: data.newPassword,
+    name: data.newName,
+  };
 
-      const querySnapshot = await getDocs(q);
-
-      const dataId = [];
-
-      querySnapshot.forEach((doc) => {
-        dataId.push(doc.id);
-      });
-
-      // dataId
-
-      // const Document = doc(db, "users", dataId[0]);
-
-      // await updateDoc(Document, {
-      //   name: data.name,
-      //   email: data.newEmail,
-      //   password: data.newpassword,
-      // });
-
-      const user = userCredential.user;
-      // console.log(user);
-      // await user.updateEmail(data.newEmail);
-      // await user.updatePassword(data.newpassword);
-
-      res.send({ results: "Profile Updated Successfully" });
-    })
-    .catch((error) => {
-      console.log(error);
-      res.send({
-        results: {
-          error: "Error While Updating Profile",
-        },
-      });
-    });
+  try {
+    await users.findOneAndUpdate(filter, update);
+    const NewData = await users.findOne(
+      {
+        email: data.newEmail,
+      },
+      { password: 0, __v: 0 }
+    );
+    res.send({ results: NewData });
+  } catch (err) {
+    res.send({ error: err.message });
+  }
 };
 
 module.exports = {
